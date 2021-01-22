@@ -14,7 +14,7 @@ def txt_to_dataframe(filename):
 
     header = 'Date      Opérations                                                                            Débit (¤)         Crédit (¤)'
 
-    match_date = re.search(r'Relevé édité le (\d\d) (\w+) (\d\d\d\d)', txt)
+    match_date = re.search(r'Relevé édité le (\d+) (\w+) (\d\d\d\d)', txt)
     day, month, year = match_date.groups()
     year = int(year)
     published_month = months[month]
@@ -26,7 +26,7 @@ def txt_to_dataframe(filename):
                             ccp[-2]).groups()[0].replace(',', '.'))
 
     pages = re.findall(
-        r'Date +Opérations(.*?)(Page|Nouveau solde)', m.groups()[0], re.DOTALL)
+        r'(Date +Opérations.*?)(Page|Nouveau solde)', m.groups()[0], re.DOTALL)
 
     m = re.search(
         r'Total des opérations +((\d ?)+(,\d+)?)(?: +((\d ?)+(,\d+)?))?', ccp[-4])
@@ -40,7 +40,15 @@ def txt_to_dataframe(filename):
     def page_to_df(page, year):
 
         lines = page.split('\n')
-        width = len(lines[0])
+        # Something scanned lines may start with spaces, so we strip them.
+        lines = list(map(lambda l: l.lstrip(), lines))
+        # Find the end of "Débit (€)", so we can consider values as credits
+        #  if they are locate before this column.
+        # Ex:
+        # Date   Opérations   Débit(€)  Crédit($)
+        # 01/01  Some text      123,45
+        # 02/01  Other text                456,67
+        credit_col_end = lines[0].find(")")
 
         def no_junk(s):
             junks = [r"^Date",
@@ -78,7 +86,7 @@ def txt_to_dataframe(filename):
                 day, month, text, value, cents = re.match(
                     re_value, g[0]).groups()
                 value = float(value.replace(' ', '').replace(',', '.'))
-                value = -value if len(g[0]) < width else value
+                value = -value if len(g[0]) <= credit_col_end else value
 
             if published_month == 1 and month == '12':
                 year -= 1

@@ -19,3 +19,7 @@ To run the pdf to csv converter run:
 python3 banquepostale_to_csv.py pdf_folder
 ```
 where `pdf_folder` is the folder containing all the PDF relevés.
+
+# Alternatives
+
+@oaubert has forked this project and developped the following alternative which might be of interest: https://github.com/oaubert/banquepostale-pdf-to-tsv
